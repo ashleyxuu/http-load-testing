@@ -20,7 +20,7 @@ This tool allows you to perform load testing on HTTP endpoints. You can specify 
 Clone the repository to your local machine.
 
 ```bash
-git clone https://github.com/yourusername/http-load-testing.git
+git clone git@github.com:ashleyxuu/http-load-testing.git
 cd http-load-testing
 ```
 
@@ -95,7 +95,7 @@ docker run --rm http-load-tester https://fireworks.ai --qps 2 --duration 5
 - Ensure your target URL is accessible and returns a valid response.
 - The tool uses ``aiohttp`` for asynchronous HTTP requests.
 - This tool is for testing and educational purposes only. Use responsibly.
-- You should give an valid positive number for qps and duration.
+- You should give valid positive numbers for qps and duration.
 
 ## License
 
