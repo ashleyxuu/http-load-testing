@@ -4,6 +4,8 @@ import aiohttp
 from aiohttp import web
 from unittest.mock import patch
 from load_tester import main
+from aiohttp.test_utils import TestClient
+
 
 @pytest.fixture
 async def mock_server():
@@ -37,10 +39,9 @@ async def test_load_tester_success(mock_print, mock_server):
     await main(url, qps=5, duration=2)
     
     output = [call.args[0] for call in mock_print.call_args_list]
-    print(output)
     assert any("Average Latency:" in line for line in output)
-    assert any("Total Requests:" in line for line in output)
-    assert any("Errors: 0" in line for line in output)
+    assert any("Latency Standard Deviation:" in line for line in output)
+    assert any("Error rate: 0%" in line for line in output)
 
 
 @pytest.mark.asyncio
@@ -53,7 +54,7 @@ async def test_load_tester_error(mock_print, mock_server):
     output = [call.args[0] for call in mock_print.call_args_list]
 
     assert any("Total Requests:" in line for line in output)
-    assert any("Errors:" in line for line in output)
+    assert any("Error rate:" in line for line in output)
 
 
 @pytest.mark.asyncio
