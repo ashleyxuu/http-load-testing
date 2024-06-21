@@ -34,6 +34,16 @@ async def worker(queue, session, stats, pbar):
         
         queue.task_done()
 
+async def rate_limiter(queue, url, qps, duration):
+    """
+    Generates URLs at a fixed QPS and adds them to the queue.
+    """
+    interval = 1 / qps
+    end_time = time.time() + duration
+    while time.time() < end_time:
+        await queue.put(url)
+        await asyncio.sleep(interval)
+
 async def main(url, qps, duration):
     queue = asyncio.Queue()
     stats = []
@@ -42,24 +52,23 @@ async def main(url, qps, duration):
     async with ClientSession() as session:
         with tqdm(total=total_requests, desc="Progress", unit="req") as pbar:
             workers = [asyncio.create_task(worker(queue, session, stats, pbar)) for _ in range(qps)]
+            limiter = asyncio.create_task(rate_limiter(queue, url, qps, duration))
 
-            end_time = time.time() + duration
-            while time.time() < end_time:
-                await queue.put(url)
-                await asyncio.sleep(1 / qps)
+            await limiter  # Wait for the rate limiter to complete
 
-            for _ in range(qps):
-                await queue.put(None)
+            for _ in range(len(workers)):
+                await queue.put(None)  # Signal workers to stop
 
-            await asyncio.gather(*workers)
+            await asyncio.gather(*workers)  # Wait for all workers to complete
 
-    latencies = [stat[0] for stat in stats if stat[1] == 200]
-    error_count = sum(1 for stat in stats if stat[1] != 200)
+    # Analyze statistics
+    latencies = [stat[0] for stat in stats if isinstance(stat[1], int) and stat[1] == 200]
+    error_count = sum(1 for stat in stats if isinstance(stat[1], int) and stat[1] != 200)
     error_rate = error_count / len(stats)
 
     if latencies:
         print(f"\nAverage Latency: {mean(latencies):.2f}s")
-        print(f"Latency Standard Deviation: {stdev(latencies):.2f}s")
+        print(f"Latency Standard Deviation: {stdev(latencies) if len(latencies) > 1 else 0:.2f}s")
     else:
         print("\nNo successful requests.")
 
